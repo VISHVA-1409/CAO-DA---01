@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Binary Multiplication Table Format</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .calculator {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+        input {
+            width: 200px;
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f5e9;
+            border-radius: 4px;
+        }
+        .steps {
+            margin-top: 20px;
+        }
+        .step {
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .multiplication-table {
+            font-family: monospace;
+            font-size: 16px;
+            margin: 20px 0;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .multiplication-table td {
+            padding: 8px;
+            text-align: right;
+            border: 1px solid #ddd;
+        }
+        .multiplication-table .highlight {
+            background-color: #fff3e0;
+        }
+        .twos-complement-table {
+            margin: 10px 0;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .twos-complement-table th,
+        .twos-complement-table td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        .twos-complement-table th {
+            background-color: #f5f5f5;
+        }
+        .carry {
+            color: #FF5722;
+            font-size: 0.8em;
+            vertical-align: super;
+        }
+        .binary-bit {
+            display: inline-block;
+            width: 20px;
+            text-align: center;
+        }
+        .complement-step {
+            background-color: #fff3e0;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <h2>Binary Multiplication Table Calculator</h2>
+        <div class="input-group">
+            <div>
+                <label>First Number:</label>
+                <input type="number" id="num1" placeholder="Enter decimal number">
+                <select id="sign1">
+                    <option value="+">+</option>
+                    <option value="-">-</option>
+                </select>
+            </div>
+        </div>
+        <div class="input-group">
+            <div>
+                <label>Second Number:</label>
+                <input type="number" id="num2" placeholder="Enter decimal number">
+                <select id="sign2">
+                    <option value="+">+</option>
+                    <option value="-">-</option>
+                </select>
+            </div>
+        </div>
+        <button onclick="calculate()">Calculate</button>
+        <div class="result" id="result"></div>
+        <div class="steps" id="steps"></div>
+    </div>
+
+    <script>
+        function decimalToBinary(decimal, bits = 8) {
+            let binary = Math.abs(decimal).toString(2);
+            return binary.padStart(bits, '0');
+        }
+
+        function findTwosComplement(binary) {
+            let onesComplement = '';
+            for(let bit of binary) {
+                onesComplement += bit === '0' ? '1' : '0';
+            }
+            
+            let twosComplement = '';
+            let carry = 1;
+            for(let i = onesComplement.length - 1; i >= 0; i--) {
+                let sum = (onesComplement[i] === '1' ? 1 : 0) + carry;
+                twosComplement = (sum % 2) + twosComplement;
+                carry = Math.floor(sum / 2);
+            }
+            
+            return {
+                onesComplement,
+                twosComplement,
+                steps: [
+                    { description: 'Original Binary', value: binary },
+                    { description: '1\'s Complement', value: onesComplement },
+                    { description: '2\'s Complement', value: twosComplement }
+                ]
+            };
+        }
+
+        function addBinary(a, b) {
+            let carry = 0;
+            let result = '';
+            let carries = '';
+            
+            const maxLength = Math.max(a.length, b.length);
+            a = a.padStart(maxLength, '0');
+            b = b.padStart(maxLength, '0');
+            
+            for(let i = maxLength - 1; i >= 0; i--) {
+                const bitA = parseInt(a[i]);
+                const bitB = parseInt(b[i]);
+                const sum = bitA + bitB + carry;
+                result = (sum % 2) + result;
+                carry = Math.floor(sum / 2);
+                carries = carry + carries;
+            }
+            
+            return {
+                result,
+                carries
+            };
+        }
+
+        function formatBinaryTable(bits) {
+            let html = '<table class="multiplication-table">';
+            for(let bit of bits) {
+                html += `<td class="binary-bit">${bit}</td>`;
+            }
+            html += '</table>';
+            return html;
+        }
+
+        function calculate() {
+            let num1 = parseInt(document.getElementById('num1').value);
+            let num2 = parseInt(document.getElementById('num2').value);
+            const sign1 = document.getElementById('sign1').value;
+            const sign2 = document.getElementById('sign2').value;
+
+            num1 = sign1 === '-' ? -num1 : num1;
+            num2 = sign2 === '-' ? -num2 : num2;
+
+            let steps = [];
+            
+            // Convert to 8-bit binary
+            const binary1 = decimalToBinary(Math.abs(num1));
+            const binary2 = decimalToBinary(Math.abs(num2));
+
+            // Initial values table
+            steps.push(`<div class="step">
+                <h3>Step 1: Initial Values</h3>
+                <table class="twos-complement-table">
+                    <tr>
+                        <th>Number</th>
+                        <th>Decimal</th>
+                        <th>Binary</th>
+                    </tr>
+                    <tr>
+                        <td>First Number</td>
+                        <td>${num1}</td>
+                        <td>${binary1}</td>
+                    </tr>
+                    <tr>
+                        <td>Second Number</td>
+                        <td>${num2}</td>
+                        <td>${binary2}</td>
+                    </tr>
+                </table>
+            </div>`);
+
+            // 2's complement conversion if needed
+            let operand1 = binary1;
+            let operand2 = binary2;
+
+            if(num1 < 0) {
+                const complement1 = findTwosComplement(binary1);
+                steps.push(`<div class="complement-step">
+                    <h3>2's Complement for First Number</h3>
+                    <table class="twos-complement-table">
+                        <tr>
+                            <th>Step</th>
+                            <th>Value</th>
+                        </tr>
+                        ${complement1.steps.map(step => `
+                            <tr>
+                                <td>${step.description}</td>
+                                <td>${step.value}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>`);
+                operand1 = complement1.twosComplement;
+            }
+
+            if(num2 < 0) {
+                const complement2 = findTwosComplement(binary2);
+                steps.push(`<div class="complement-step">
+                    <h3>2's Complement for Second Number</h3>
+                    <table class="twos-complement-table">
+                        <tr>
+                            <th>Step</th>
+                            <th>Value</th>
+                        </tr>
+                        ${complement2.steps.map(step => `
+                            <tr>
+                                <td>${step.description}</td>
+                                <td>${step.value}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>`);
+                operand2 = complement2.twosComplement;
+            }
+
+            // Multiplication table
+            steps.push(`<div class="step">
+                <h3>Step 2: Multiplication Process</h3>
+                <table class="multiplication-table">
+                    <tr>
+                        <td colspan="${operand1.length + 1}">${operand1}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="${operand1.length + 1}">× ${operand2}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="${operand1.length + 1}">${'─'.repeat(operand1.length + 2)}</td>
+                    </tr>`);
+
+            let partialProducts = [];
+            for(let i = operand2.length - 1; i >= 0; i--) {
+                let partialProduct = '';
+                if(operand2[i] === '1') {
+                    partialProduct = operand1;
+                } else {
+                    partialProduct = '0'.repeat(operand1.length);
+                }
+                partialProduct = partialProduct + '0'.repeat(operand2.length - 1 - i);
+                partialProducts.push(partialProduct);
+                
+                steps.push(`<tr>
+                    <td colspan="${operand1.length + 1}">${partialProduct}</td>
+                </tr>`);
+            }
+
+            let result = partialProducts[0];
+            for(let i = 1; i < partialProducts.length; i++) {
+                const addition = addBinary(result, partialProducts[i]);
+                result = addition.result;
+                
+                steps.push(`<tr>
+                    <td class="carry" colspan="${operand1.length + 1}">${addition.carries}</td>
+                </tr>`);
+            }
+
+            steps.push(`<tr>
+                <td colspan="${operand1.length + 1}">${'─'.repeat(operand1.length + 2)}</td>
+            </tr>
+            <tr>
+                <td colspan="${operand1.length + 1}">${result}</td>
+            </tr>
+            </table>
+            </div>`);
+
+            // Check if result should be negative
+            const resultShouldBeNegative = (num1 < 0) !== (num2 < 0);
+            if(resultShouldBeNegative) {
+                const finalComplement = findTwosComplement(result);
+                steps.push(`<div class="complement-step">
+                    <h3>Final 2's Complement (Negative Result)</h3>
+                    <table class="twos-complement-table">
+                        <tr>
+                            <th>Step</th>
+                            <th>Value</th>
+                        </tr>
+                        ${finalComplement.steps.map(step => `
+                            <tr>
+                                <td>${step.description}</td>
+                                <td>${step.value}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>`);
+                result = finalComplement.twosComplement;
+            }
+
+            // Display final result
+            const finalDecimal = num1 * num2;
+            document.getElementById('result').innerHTML = `
+                <h3>Final Result</h3>
+                <table class="twos-complement-table">
+                    <tr>
+                        <th>Format</th>
+                        <th>Value</th>
+                    </tr>
+                    <tr>
+                        <td>Decimal</td>
+                        <td>${finalDecimal}</td>
+                    </tr>
+                    <tr>
+                        <td>Binary</td>
+                        <td>${result}</td>
+                    </tr>
+                </table>`;
+            
+            document.getElementById('steps').innerHTML = steps.join('');
+        }
+    </script>
+</body>
+</html>

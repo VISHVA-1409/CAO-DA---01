@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Signed Magnitude Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .calculator {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        input[type="number"] {
+            width: 100px;
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4c74af;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #5c8bd1;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f5e9;
+            border-radius: 4px;
+        }
+        .steps {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .binary-representation {
+            font-family: monospace;
+            margin-top: 10px;
+        }
+        .complement-steps {
+            background-color: #fff3e0;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <h2>Signed Magnitude Calculator with 2's Complement</h2>
+        <div class="input-group">
+            <label>First Number:</label>
+            <input type="number" id="num1" value="0">
+            <select id="sign1">
+                <option value="+">+</option>
+                <option value="-">-</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Second Number:</label>
+            <input type="number" id="num2" value="0">
+            <select id="sign2">
+                <option value="+">+</option>
+                <option value="-">-</option>
+            </select>
+        </div>
+        <div>
+            <button onclick="calculate('add')">Add</button>
+            <button onclick="calculate('subtract')">Subtract</button>
+        </div>
+        <div class="result" id="result">
+            Result will appear here
+        </div>
+        <div class="steps" id="steps">
+            Steps will appear here
+        </div>
+    </div>
+
+    <script>
+        function decimalToBinary(num, bits = 8) {
+            return Math.abs(num).toString(2).padStart(bits - 1, '0');
+        }
+
+        function findTwosComplement(binary) {
+            let steps = [];
+            // Step 1: Convert to full 8-bit binary
+            let fullBinary = binary.padStart(8, '0');
+            steps.push(`Original binary: ${fullBinary}`);
+
+            // Step 2: Flip all bits
+            let onesComplement = '';
+            for(let bit of fullBinary) {
+                onesComplement += bit === '0' ? '1' : '0';
+            }
+            steps.push(`1's complement (flip all bits): ${onesComplement}`);
+
+            // Step 3: Add 1
+            let twosComplement = '';
+            let carry = 1;
+            for(let i = onesComplement.length - 1; i >= 0; i--) {
+                let sum = (onesComplement[i] === '1' ? 1 : 0) + carry;
+                twosComplement = (sum % 2) + twosComplement;
+                carry = Math.floor(sum / 2);
+            }
+            steps.push(`2's complement (add 1): ${twosComplement}`);
+
+            return [twosComplement, steps];
+        }
+
+        function calculate(operation) {
+            const num1 = parseInt(document.getElementById('num1').value);
+            const num2 = parseInt(document.getElementById('num2').value);
+            const sign1 = document.getElementById('sign1').value;
+            const sign2 = document.getElementById('sign2').value;
+
+            // Convert to actual signed numbers
+            const signedNum1 = sign1 === '+' ? num1 : -num1;
+            const signedNum2 = sign2 === '+' ? num2 : -num2;
+
+            let result, steps;
+            
+            if (operation === 'add') {
+                [result, steps] = addSignedMagnitude(signedNum1, signedNum2);
+            } else {
+                [result, steps] = subtractSignedMagnitude(signedNum1, signedNum2);
+            }
+
+            // Get binary representation
+            let binaryResult = decimalToBinary(Math.abs(result));
+            let displayBinary;
+            let complementSteps = [];
+
+            if (result < 0) {
+                // If result is negative, calculate 2's complement
+                [displayBinary, complementSteps] = findTwosComplement(binaryResult);
+            } else {
+                displayBinary = '0' + binaryResult;
+            }
+
+            // Display result
+            let resultHTML = `
+                <h3>Result: ${result}</h3>
+                <div class="binary-representation">
+                    ${result >= 0 ? 
+                        `Signed Magnitude Binary: ${displayBinary}` :
+                        `Original Signed Magnitude: 1${binaryResult}<br>
+                         2's Complement Result: ${displayBinary}`}
+                </div>`;
+
+            if (result < 0) {
+                resultHTML += `
+                    <div class="complement-steps">
+                        <h4>2's Complement Conversion Steps:</h4>
+                        ${complementSteps.map(step => `<p>${step}</p>`).join('')}
+                    </div>`;
+            }
+
+            document.getElementById('result').innerHTML = resultHTML;
+
+            // Display operation steps
+            document.getElementById('steps').innerHTML = `
+                <h3>Operation Steps:</h3>
+                ${steps.map(step => `<p>${step}</p>`).join('')}`;
+        }
+
+        function addSignedMagnitude(num1, num2) {
+            let steps = [];
+            
+            steps.push(`First number: ${num1} (${num1 >= 0 ? '0' : '1'}${decimalToBinary(num1)})`);
+            steps.push(`Second number: ${num2} (${num2 >= 0 ? '0' : '1'}${decimalToBinary(num2)})`);
+
+            let result;
+            if (num1 >= 0 && num2 >= 0) {
+                result = num1 + num2;
+                steps.push("Both numbers are positive, performing regular addition");
+            } else if (num1 < 0 && num2 < 0) {
+                result = -(Math.abs(num1) + Math.abs(num2));
+                steps.push("Both numbers are negative, adding magnitudes and keeping negative sign");
+            } else {
+                const absNum1 = Math.abs(num1);
+                const absNum2 = Math.abs(num2);
+                if (absNum1 > absNum2) {
+                    result = num1 > 0 ? absNum1 - absNum2 : -(absNum1 - absNum2);
+                    steps.push("First number has larger magnitude, subtracting smaller magnitude and keeping sign of larger number");
+                } else {
+                    result = num2 > 0 ? absNum2 - absNum1 : -(absNum2 - absNum1);
+                    steps.push("Second number has larger magnitude, subtracting smaller magnitude and keeping sign of larger number");
+                }
+            }
+
+            steps.push(`Final result: ${result}`);
+            return [result, steps];
+        }
+
+        function subtractSignedMagnitude(num1, num2) {
+            let steps = [];
+            
+            steps.push(`First number: ${num1} (${num1 >= 0 ? '0' : '1'}${decimalToBinary(num1)})`);
+            steps.push(`Second number: ${num2} (${num2 >= 0 ? '0' : '1'}${decimalToBinary(num2)})`);
+            steps.push(`Converting subtraction to addition: ${num1} + (${-num2})`);
+
+            return addSignedMagnitude(num1, -num2);
+        }
+    </script>
+</body>
+</html>
